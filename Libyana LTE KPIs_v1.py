@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import xlsxwriter
-
 from IPython.core.pylabtools import figsize
 from IPython.display import display
 #pip install xlsxwriter
@@ -22,8 +21,10 @@ pd.set_option('display.width', 1000)
 ## 📁 importing Libyana LTE KPI Data
 lte_rawdata = pd.read_excel('Datasets/Libyana Dataset JUN25/History Query-LTE KPI one year daily.xlsx',
                             sheet_name='Sheet0')
-#--------------------------------------------------------------------------------------------------------
+
+## ==============================================================================
 # ⚙️️ EDA summary function with Export feature
+## ==============================================================================
 def basic_EDA_summary(df, name="DataFrame"):
     print(f"\n ---- Head of {name}")
     display(df.head(10))
@@ -45,8 +46,10 @@ def basic_EDA_summary(df, name="DataFrame"):
         df.dtypes.reset_index().rename(columns={0: 'DataType', 'index': 'Column'}) \
             .to_excel(writer, sheet_name="DataTypes", index=False)
     print(f"\n✅ Exported EDA summary to {file_path}")
+
 # ==============================================================================
 # 🔍 Exploring lte raw data
+## ==============================================================================
 basic_EDA_summary(lte_rawdata, name="LTE Raw Data")
 
 # 🔍 checking how many LTE enodeB
@@ -57,8 +60,10 @@ lte_rawdata['eNodeB Name'].value_counts()
 lte_rawdata['E-UTRAN FDD Cell Name'].unique()
 lte_rawdata['E-UTRAN FDD Cell Name'].nunique()
 lte_rawdata['E-UTRAN FDD Cell Name'].value_counts().to_csv('exports/noofcellsobsercations.csv')
+
 # ==============================================================================
-## 📊 Select KEY Radio Features required for forecasting PS traffic
+# 📊 Select KEY Radio Features required for forecasting PS traffic
+# ==============================================================================
 lte_ps_traffic = lte_rawdata[[
     #Time Stamp
     'Begin Time',
@@ -123,6 +128,7 @@ lte_ps_traffic = lte_rawdata[[
 })
 # ==============================================================================
 # 🔍  Exploring lte_ps_traffic EDA Summary
+# ==============================================================================
 basic_EDA_summary(lte_ps_traffic, name = 'lte ps traffic')
 
 # 🔍 checking how many LTE enodeB
@@ -134,10 +140,10 @@ lte_rawdata['cell_name'].unique()
 lte_rawdata['cell_name'].nunique()
 lte_rawdata['cell_name'].value_counts().to_csv('exports/ltepstraffi_countofcells.csv')
 
-# ==============================================================================
-# UTILITY FUNCTIONS
+
 # ==============================================================================
 # ⚙️️ Summary statistics Function: Computes descriptive statistics for all numeric columns and exports to Excel
+# ==============================================================================
 def descriptive_statistics_numeric(df, name="DataFrame"):
     numeric_df = df.select_dtypes(include='number')
     summary_stats = pd.DataFrame({
@@ -159,11 +165,15 @@ def descriptive_statistics_numeric(df, name="DataFrame"):
     summary_stats.to_excel(file_path, index=False)
     print("\n🟢 Exported numeric summary for '" + name + "' to: " + file_path)
     return summary_stats
+
 # ==============================================================================
 # 🔍 conduct Descriptive analysis for lte_ps_traffic
+# ==============================================================================
 descriptive_statistics_numeric(lte_ps_traffic, name ='lte_ps_traffic')
-#---------------------------------------------------------------------------------------------------------------
-# ***** Group by timestamp and enodeb_name, and aggregate using appropriate functions
+
+# ==============================================================================
+#  Group by timestamp and enodeb_name, and aggregate using appropriate functions
+# ==============================================================================
 agg_sites_traffic = lte_ps_traffic.groupby(['timestamp', 'enodeb_name']).agg({
     'ps_traffic_volume_gb': 'sum',
     'ul_prb_util_%': 'mean',
@@ -185,45 +195,47 @@ agg_sites_traffic = lte_ps_traffic.groupby(['timestamp', 'enodeb_name']).agg({
     'intra_rat_ho_success_rate_%': 'mean',
     'no_ping_pong_ho_count':'sum'
 }).reset_index()
-## ==============================================================================
-# 🔍 Basic EDA Exploration from aggregated data
-basic_EDA_summary(agg_sites_traffic, name ='site level data')
 
+# ==============================================================================
+# 🔍 Basic EDA Exploration from aggregated data
+# ==============================================================================
+basic_EDA_summary(agg_sites_traffic, name ='site level data')
 # 🔍 conduct Descriptive analysis for lte_ps_traffic
 descriptive_statistics_numeric(agg_sites_traffic, name ='agg_sites_traffic')
-## ==============================================================================
 
 # ==============================================================================
-# DATA PREPROCESSING
+# DATA PREPROCESSING of Aggregated Sites Traffic
 # ==============================================================================
 # 1. Data formatting
+# ==============================================================================
+agg_sites_traffic.info()
+agg_sites_traffic.head()
+agg_sites_traffic['timestamp'] = pd.to_datetime(agg_sites_traffic['timestamp'])
 agg_sites_traffic['timestamp'] = pd.to_datetime(agg_sites_traffic['timestamp'])
 agg_sites_traffic.set_index('timestamp', inplace=True)
-agg_sites_traffic # conversion was successful ✅
-#--------------------------------------------------------------------------------------------------------------------
+agg_sites_traffic.info()
 #Exporting the formated and organised data
 agg_sites_traffic.to_excel('exports/Libyana LTE KPIs/aggregated_sites_traffic.xlsx')
-#----------------------------------------------------------------------------------------------------------------------
+
 # 2. Missing Data
+# ==============================================================================
 # since number of missing data
 agg_sites_traffic.shape
 agg_sites_traffic=agg_sites_traffic.dropna()
 agg_sites_traffic.shape
-# ---------------------------------------------------------------------------------------------------------------------
-# ==============================================================================
-# CORRELATION ANALYSIS
+
+# 3. CORRELATION ANALYSIS
 # ==============================================================================
 # ****** Correlation analysis - Per site level
 ## Computes Pearson correlation (linear relationship) Range: [-1, 1]
-
 TRI022L_numeric = agg_sites_traffic[agg_sites_traffic['enodeb_name']=='TRI022L'].select_dtypes(include='number')
 corr_TRI022L = TRI022L_numeric.corr(method='pearson')
 corr_TRI022L
-
 #Writting Correlation Matrix to disk
 corr_TRI022L.to_excel('exports/Libyana LTE KPIs/Correlation/corr_TRI022L.xlsx', index=True)
+
 # 3.1 Creating a correlation Function
-def calculate_corr(df, name: str) -> pd.DataFrame:
+def calculate_corr(df, name):
     filtered_df = df[df['enodeb_name'] == name]
     numeric_df = filtered_df.select_dtypes(include='number')
     correlation_matrix = numeric_df.corr()
@@ -248,7 +260,6 @@ corr_TRI730L = calculate_corr(agg_sites_traffic, name='TRI730L')
 corr_TRI825L = calculate_corr(agg_sites_traffic, name='TRI825L')
 
 # 3.3 Correlation Visualisation
-
 # TRI022L
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -268,7 +279,7 @@ plt.xlabel('KPI Features')
 plt.yticks(fontsize = 8)
 plt.ylabel('KPI Features')
 plt.tight_layout()                                    # Auto-adjust layout to prevent overlap
-plt.show(block= True)
+plt.show()
 
 #TRI____
 # Plotting correlation heatmap
