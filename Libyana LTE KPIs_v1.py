@@ -211,7 +211,6 @@ descriptive_statistics_numeric(agg_sites_traffic, name ='agg_sites_traffic')
 agg_sites_traffic.info()
 agg_sites_traffic.head()
 agg_sites_traffic['timestamp'] = pd.to_datetime(agg_sites_traffic['timestamp'])
-agg_sites_traffic['timestamp'] = pd.to_datetime(agg_sites_traffic['timestamp'])
 agg_sites_traffic.set_index('timestamp', inplace=True)
 agg_sites_traffic.info()
 #Exporting the formated and organised data
@@ -281,45 +280,86 @@ plt.ylabel('KPI Features')
 plt.tight_layout()                                    # Auto-adjust layout to prevent overlap
 plt.show()
 
-#TRI____
-# Plotting correlation heatmap
-plt.figure(figsize=(12,7))
-sns.heatmap(corr_TRI231L,
-            annot=True,                 # Display correlation values inside the heatmap cells
-            fmt='.2f',                  # Format the numbers to 2 decimal places
-            cmap='coolwarm',            # Diverging color palette from blue to red
-            square=True,                # Shrink the color bar to make space for plot
-            cbar_kws={'shrink': 0.5},   # Forcing perfect square for visual asthetics
-            annot_kws={'fontsize': 6}  # <-- reducing font size inside the boxed for clarity
-            )
-plt.title('Pair-wise Correlation Matrix for TRI213L') # Set plot title
-plt.xticks(rotation= 45, fontsize = 8, ha='right')    # Rotate and align x-axis tick labels
-plt.xlabel('KPI Features')
-plt.yticks(fontsize = 8)
-plt.ylabel('KPI Features')
-plt.tight_layout()                                    # Auto-adjust layout to prevent overlap
-plt.show(block= True)
+# using for loop to plot all the sites correlation
+# eNodeB Correlation List
+enodeb_list = [
+    'TRI882L', 'TRI022L', 'TRI166L', 'TRI231L',
+    'TRI878L', 'TRI183L', 'TRI209L', 'TRI165L',
+    'TRI809L', 'TRI194L', 'TRI435L', 'TRI1007L',
+    'TRI695L', 'TRI055L', 'TRI730L', 'TRI825L']
 
+for name in enodeb_list:
+    corr_matrix = calculate_corr(agg_sites_traffic, name=name)
+    plt.figure(figsize=(12, 7))
+    sns.heatmap(
+        corr_matrix,
+        annot=True,
+        fmt='.2f',
+        cmap='coolwarm',
+        square=True,
+        cbar_kws={'shrink': 0.5},
+        annot_kws={'fontsize': 6}
+    )
+    plt.title(f'Pair-wise Correlation Matrix for {name}')
+    plt.xticks(rotation=45, fontsize=8, ha='right')
+    plt.yticks(fontsize=8)
+    plt.xlabel('KPI Features')
+    plt.ylabel('KPI Features')
+    plt.tight_layout()
+    plt.show()
+
+    ###### with export instead of show
+    for name in enodeb_list:
+        corr_matrix = calculate_corr(agg_sites_traffic, name=name)
+        plt.figure(figsize=(12, 7))
+        sns.heatmap(
+            corr_matrix,
+            annot=True,
+            fmt='.2f',
+            cmap='coolwarm',
+            square=True,
+            cbar_kws={'shrink': 0.5},
+            annot_kws={'fontsize': 6}
+        )
+        plt.title(f'Pair-wise Correlation Matrix for {name}')
+        plt.xticks(rotation=45, fontsize=8, ha='right')
+        plt.yticks(fontsize=8)
+        plt.xlabel('KPI Features')
+        plt.ylabel('KPI Features')
+        plt.tight_layout()
+        plt.savefig(f'exports/Libyana LTE KPIs/Correlation/Plots/correlation_matrix_{name}.png', dpi=300)
+        plt.close()
 #-------------------------------------------------------------
 # 4. Outlier handling
 # site level outlier handling because each sites has unique KPI behaviour
-
-TRI022 = agg_sites_traffic.loc[agg_sites_traffic['enodeb_name']=='TRI022L', :]
-TRI022.columns
-
-plt.hist(TRI022['ps_traffic_volume_gb'], color='lightblue', edgecolor='black')
+TRI022a = agg_sites_traffic[agg_sites_traffic['enodeb_name']=='TRI022L']
+#Hitogram of target Variable for TRI022L
+plt.hist(TRI022a['ps_traffic_volume_gb'], color='lightblue', edgecolor='black')
 plt.grid(True, alpha = 0.3)
 plt.xlabel('No. of RRC Users')
 plt.ylabel('Frequency')
-plt.show(block=True)
+plt.show()
 
+def plot_faceted_histograms_ps_traffic(df, enodeb_name):
+    subset = df[df['enodeb_name'] == enodeb_name]
+    features = ['ps_traffic_volume_gb']
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    for ax, feature in zip(axes.flatten(), features):
+        ax.hist(subset[feature].dropna(), color='lightblue', edgecolor='black')
+        ax.set_title(f'{feature} Distribution', fontsize=10)
+        ax.grid(True, alpha=0.3)
+    fig.suptitle(f"Histograms for {enodeb_name}", fontsize=14)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.show(block=True)
+
+# =======  Hitograms
 # Function histogram Plots faceted histograms for selected features of a specific eNodeB.
 #     Parameters:
 #     - data (pd.DataFrame): Dataset with 'enodeb_name' and selected features.
 #     - enodeb_name (str): The name of the eNodeB to filter.
 
-def plot_faceted_histograms(data: pd.DataFrame, enodeb_name: str):
-    subset = data[data['enodeb_name'] == enodeb_name]
+def plot_faceted_histograms(df, enodeb_name):
+    subset = df[df['enodeb_name'] == enodeb_name]
     features = ['avg_rssi_dbm', 'mean_no_rrc_users', 'dl_avg_mcs', 'dl_prb_available_bandwidth']
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     for ax, feature in zip(axes.flatten(), features):
@@ -330,9 +370,22 @@ def plot_faceted_histograms(data: pd.DataFrame, enodeb_name: str):
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show(block=True)
 
-plot_faceted_histograms(agg_sites_traffic, enodeb_name='TRI022L')
-plot_faceted_histograms(agg_sites_traffic, enodeb_name='TRI1007L')
+def plot_faceted_histograms1(df, enodeb_name):
+    subset = df[df['enodeb_name'] == enodeb_name]
+    features = ['avg_rssi_dbm', 'mean_no_rrc_users', 'dl_avg_mcs', 'dl_prb_available_bandwidth']
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    for ax, feature in zip(axes.flatten(), features):
+        ax.hist(subset[feature].dropna(), color='lightblue', edgecolor='black')
+        ax.set_title(f'{feature} Distribution', fontsize=10)
+        ax.grid(True, alpha=0.3)
+    fig.suptitle(f"Histograms for {enodeb_name}", fontsize=14)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.savefig(f'exports/Libyana LTE KPIs/Histogram Plots/eNodeB_{enodeb_name}_histo', dpi=300)
+    plt.close()
 
+#plotting all graphs
+for name in enodeb_list:
+    plot_faceted_histograms1(agg_sites_traffic, enodeb_name=name)
 
 # Drops rows containing outliers in numeric columns for a specific eNodeB based on IQR.
 #Parameters:
@@ -366,17 +419,41 @@ plt.show(block=True)
 def subset_enodeb (df, name):
     return df[df['enodeb_name']==name]
 
+
 TRI022_data = subset_enodeb(agg_sites_traffic, 'TRI022L')
 
 TRI022_data['ps_traffic_volume_gb']
-#--------------------------------------------------------------
+
+
 # ==============================================================================
 # TIME SERIES VISUALIZATION AND ANALYSIS  
 # ==============================================================================
+import matplotlib.pyplot as plt
 ## Time-Series EDA visualisation
 agg_sites_traffic['enodeb_name'].unique()
+#creating a function to subset sites
+def subset_enodeb (df,name):
+    return df[df['enodeb_name']==name]
+agg_sites_traffic.info()
+TRI022L = subset_enodeb(agg_sites_traffic, name='TRI022L')
+TRI055L = subset_enodeb(agg_sites_traffic, name='TRI055L')
+TRI1007L = subset_enodeb(agg_sites_traffic, name='TRI1007L')
+TRI165L = subset_enodeb(agg_sites_traffic, name='TRI165L')
+TRI166L = subset_enodeb(agg_sites_traffic, name='TRI166L')
+TRI183L = subset_enodeb(agg_sites_traffic, name='TRI183L')
+TRI194L = subset_enodeb(agg_sites_traffic, name='TRI194L')
+TRI209L = subset_enodeb(agg_sites_traffic, name='TRI209L')
+TRI231L = subset_enodeb(agg_sites_traffic, name='TRI231L')
+TRI435L = subset_enodeb(agg_sites_traffic, name='TRI435L')
+TRI695L = subset_enodeb(agg_sites_traffic, name='TRI695L')
+TRI730L = subset_enodeb(agg_sites_traffic, name='TRI730L')
+TRI809L = subset_enodeb(agg_sites_traffic, name='TRI809L')
+TRI825L = subset_enodeb(agg_sites_traffic, name='TRI825L')
+TRI878L = subset_enodeb(agg_sites_traffic, name='TRI878L')
+TRI882L = subset_enodeb(agg_sites_traffic, name='TRI882L')
+
 #TRI022L
-TRI022_data['ps_traffic_volume_gb'].plot(grid=True,
+TRI022L['ps_traffic_volume_gb'].plot(grid=True,
                                          figsize=(10, 7),
                                          title='Total PS Traffic Volume Over Time')
 plt.xlabel('Timestamp')

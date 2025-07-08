@@ -522,3 +522,22 @@ for site in agg_sites_traffic['enodeb_name'].unique():
 agg_sites_traffic.loc['2024-06-10']
 
 lte_ps_traffic.info()
+
+
+#### outlier histogram
+
+def plot_faceted_histograms(data: pd.DataFrame, enodeb_name: str):
+    subset = data[data['enodeb_name'] == enodeb_name]
+    features = ['avg_rssi_dbm', 'mean_no_rrc_users', 'dl_avg_mcs', 'dl_prb_available_bandwidth']
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    for ax, feature in zip(axes.flatten(), features):
+        ax.hist(subset[feature].dropna(), color='lightblue', edgecolor='black')
+        ax.set_title(f'{feature} Distribution', fontsize=10)
+        ax.grid(True, alpha=0.3)
+    fig.suptitle(f"Histograms for {enodeb_name}", fontsize=14)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.show(block=True)
+
+
+plot_faceted_histograms(agg_sites_traffic, enodeb_name='TRI022L')
+plot_faceted_histograms(agg_sites_traffic, enodeb_name='TRI1007L')
