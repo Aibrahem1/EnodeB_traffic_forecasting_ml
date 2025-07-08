@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import xlsxwriter
 from IPython.core.pylabtools import figsize
 from IPython.display import display
+
+
 #pip install xlsxwriter
 #pip install IPython
 
@@ -212,7 +214,8 @@ agg_sites_traffic.info()
 agg_sites_traffic.head()
 agg_sites_traffic['timestamp'] = pd.to_datetime(agg_sites_traffic['timestamp'])
 agg_sites_traffic.set_index('timestamp', inplace=True)
-agg_sites_traffic.info()
+agg_sites_traffic.info() # Timestamp has become and index
+
 #Exporting the formated and organised data
 agg_sites_traffic.to_excel('exports/Libyana LTE KPIs/aggregated_sites_traffic.xlsx')
 
@@ -434,9 +437,11 @@ agg_sites_traffic['enodeb_name'].unique()
 #creating a function to subset sites
 def subset_enodeb (df,name):
     return df[df['enodeb_name']==name]
-agg_sites_traffic.info()
 
+agg_sites_traffic.info()
 TRI022L.info()
+type(TRI022L)
+# ==============================================================================
 TRI022L = subset_enodeb(agg_sites_traffic, name='TRI022L')
 TRI055L = subset_enodeb(agg_sites_traffic, name='TRI055L')
 TRI1007L = subset_enodeb(agg_sites_traffic, name='TRI1007L')
@@ -453,9 +458,9 @@ TRI809L = subset_enodeb(agg_sites_traffic, name='TRI809L')
 TRI825L = subset_enodeb(agg_sites_traffic, name='TRI825L')
 TRI878L = subset_enodeb(agg_sites_traffic, name='TRI878L')
 TRI882L = subset_enodeb(agg_sites_traffic, name='TRI882L')
-
+# ==============================================================================
 TRI022L.to_csv('exports/TRI022L.csv')
-#TRI022L
+#TRI022L TSA EDA - 1 Year
 TRI022L['2024-06-01':]['ps_traffic_volume_gb'].plot(figsize=(12, 4))
 plt.xlabel("Timestamp")
 plt.ylabel("PS Traffic Volume (GB)")
@@ -463,18 +468,64 @@ plt.title("PS Traffic Volume for TRI022L")
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.show()
-
-##### Resampling to check the trend M: Month, QS: Quarerly, YE: Yearly
-help(resample)
+# Resampling Mean Monthly to check the trend M: Month, QS: Quarerly, YE: Yearly
 TRI022L['ps_traffic_volume_gb'].resample(rule='M').mean().plot(figsize=(12,4))
+plt.xlabel("Timestamp")
+plt.ylabel("PS Traffic Volume (GB)")
+plt.title("PS Traffic Volume for TRI022L Montly Average")
+plt.grid(True, which='both' ,alpha=0.3)
+plt.tight_layout()
+plt.show()
+# Simple moving average Smoothing
+TRI022L.info()
+TRI022L['ps_30_rolling_window']=TRI022L['ps_traffic_volume_gb'].rolling(15, min_periods =1).mean()
+TRI022L['ps_CMA']=TRI022L['ps_traffic_volume_gb'].expanding().mean()
+TRI022L['ps_EMA'] = TRI022L['ps_traffic_volume_gb'].ewm(alpha=0.3, adjust=False).mean()
+TRI022L['ps_EWMA'] = TRI022L['ps_traffic_volume_gb'].ewm(span=30).mean()
+
+# Cumalatitive Moving Average Smoothing
+#TRI022L TSA EDA + SMA 30 - 1 Year
+TRI022L['2024-06-01':][['ps_traffic_volume_gb',
+                        'ps_CMA']].plot(figsize=(12, 4))
+plt.xlabel("Timestamp")
+plt.ylabel("PS Traffic Volume (GB)")
+plt.title("PS Traffic Volume for TRI022L")
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
 plt.show()
 
+# ==============================================================================
+#  Function to smooth_and_plot_enodeb_traffic to visually check for trend
+# ==============================================================================
+def plot_ps_traffic_smoothing (df, enodeb_name,
+                               window=15,
+                               ema_alpha=0.3,
+                               ewma_span=30,
+                               start_date=None,
+                               end_date=None):
+    site_df = df[df['enodeb_name'] == enodeb_name].copy()
+    if start_date and end_date:
+        site_df = site_df.loc[start_date:end_date]
+    elif start_date:
+        site_df = site_df.loc[start_date: ]
+    # Calculate moving averages
+    site_df['ps_SMA'] = site_df['ps_traffic_volume_gb'].rolling(window, min_periods=1).mean()
+    site_df['ps_CMA'] = site_df['ps_traffic_volume_gb'].expanding().mean()
+    site_df['ps_EMA'] = site_df['ps_traffic_volume_gb'].ewm(alpha=ema_alpha, adjust=False).mean()
+    site_df['ps_EWMA'] = site_df['ps_traffic_volume_gb'].ewm(span=ewma_span).mean()
 
-df_tesla['High'].resample(rule='QS').max().plot(figsize = (12,4))
-plt.show()
+    # Plot
+    site_df[['ps_traffic_volume_gb', 'ps_SMA', 'ps_CMA', 'ps_EMA', 'ps_EWMA']].plot(figsize=(12, 4))
+    plt.title(f"PS Traffic Volume Smoothing for {enodeb_name}")
+    plt.xlabel("Timestamp")
+    plt.ylabel("PS Traffic Volume (GB)")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+# =======================
 
-#TRI022 1Q KPIs
-TRI022_data['ps_traffic_volume_gb'].plot(grid=True,
+# Plotting PS Traffic for TRI022L Q3
+TRI022L['ps_traffic_volume_gb'].plot(grid=True,
                                          xlim=['2024-06-01','2024-08-30'],
                                          figsize=(12, 5),
                                          title='Total PS Traffic Volume Over Time')
@@ -482,6 +533,12 @@ plt.xlabel('Timestamp')
 plt.ylabel('PS Traffic Volume (GB)')
 plt.tight_layout()
 plt.show(block=True)
+# =============================================================================================================
+#Applying the function
+for name in enodeb_list:
+    plot_ps_traffic_smoothing(agg_sites_traffic, name)
+# ==============================================================
+
 
 #,,,,,,
 TRI022_data['ps_traffic_volume_gb'].plot(figsize=(14,5),
@@ -503,8 +560,9 @@ plt.show(block=True)
 TRI022_data.resample(rule='QS').max()['ps_traffic_volume_gb'].plot(figsize=(12,4))
 plt.show(block=True)
 #Weekly
-TRI022_data.resample(rule='W').max()['ps_traffic_volume_gb'].plot(kind='bar'
+TRI022L.resample(rule='W').max()['ps_traffic_volume_gb'].plot(kind='line'
                                                                   ,figsize=(12,2))
+plt.tight_layout()
 plt.show(block=True)
 
 TRI022_data['ps_traffic_volume_gb'].rolling(10).mean().plot()
