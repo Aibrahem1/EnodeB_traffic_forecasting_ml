@@ -122,7 +122,7 @@ lte_ps_traffic = lte_rawdata[[
     'Number of Ping-Pong Handover': 'no_ping_pong_ho_count'
 })
 # ==============================================================================
-# 🔍 Exploring lte_ps_traffic EDA Summary
+# 🔍  Exploring lte_ps_traffic EDA Summary
 basic_EDA_summary(lte_ps_traffic, name = 'lte ps traffic')
 
 # 🔍 checking how many LTE enodeB
