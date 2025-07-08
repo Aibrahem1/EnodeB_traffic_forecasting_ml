@@ -435,6 +435,8 @@ agg_sites_traffic['enodeb_name'].unique()
 def subset_enodeb (df,name):
     return df[df['enodeb_name']==name]
 agg_sites_traffic.info()
+
+TRI022L.info()
 TRI022L = subset_enodeb(agg_sites_traffic, name='TRI022L')
 TRI055L = subset_enodeb(agg_sites_traffic, name='TRI055L')
 TRI1007L = subset_enodeb(agg_sites_traffic, name='TRI1007L')
@@ -452,15 +454,22 @@ TRI825L = subset_enodeb(agg_sites_traffic, name='TRI825L')
 TRI878L = subset_enodeb(agg_sites_traffic, name='TRI878L')
 TRI882L = subset_enodeb(agg_sites_traffic, name='TRI882L')
 
+TRI022L.to_csv('exports/TRI022L.csv')
 #TRI022L
-TRI022L['ps_traffic_volume_gb'].plot(grid=True,
-                                         figsize=(10, 7),
-                                         title='Total PS Traffic Volume Over Time')
-plt.xlabel('Timestamp')
-plt.ylabel('PS Traffic Volume (GB)')
+TRI022L['2024-06-01':]['ps_traffic_volume_gb'].plot(figsize=(12, 4))
+plt.xlabel("Timestamp")
+plt.ylabel("PS Traffic Volume (GB)")
+plt.title("PS Traffic Volume for TRI022L")
+plt.grid(True, alpha=0.3)
 plt.tight_layout()
-plt.grid(True, alpha =0.3)
-plt.show(block=True)
+plt.show()
+
+##### Resampling to check the trend M: Month, QS: Quarerly, YE: Yearly
+TRI022L['ps_traffic_volume_gb'].resample(rule='M').mean().plot(figsize=(12,4))
+plt.show()
+
+df_tesla['High'].resample(rule='QS').max().plot(figsize = (12,4))
+plt.show()
 
 #TRI022 1Q KPIs
 TRI022_data['ps_traffic_volume_gb'].plot(grid=True,
