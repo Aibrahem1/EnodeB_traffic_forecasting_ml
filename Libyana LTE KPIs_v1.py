@@ -465,8 +465,10 @@ plt.tight_layout()
 plt.show()
 
 ##### Resampling to check the trend M: Month, QS: Quarerly, YE: Yearly
+help(resample)
 TRI022L['ps_traffic_volume_gb'].resample(rule='M').mean().plot(figsize=(12,4))
 plt.show()
+
 
 df_tesla['High'].resample(rule='QS').max().plot(figsize = (12,4))
 plt.show()
