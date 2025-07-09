@@ -594,9 +594,6 @@ plot_stl_decomposition(agg_sites_traffic, 'TRI022L', 30)
 # ==============================================================
 from statsmodels.tsa.stattools import adfuller
 
-#
-
-from statsmodels.tsa.stattools import adfuller
 
 def adf_test(series):
     result = adfuller(series)
