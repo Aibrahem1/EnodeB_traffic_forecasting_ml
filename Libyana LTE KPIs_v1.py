@@ -621,13 +621,12 @@ adfuller_test(TRI022L['ps_traffic_volume_gb']) #Not Sationary >>>> require Diffe
 TRI022L.loc[:,'ps_traffic_Diff1'] = TRI022L['ps_traffic_volume_gb']-TRI022L['ps_traffic_volume_gb'].shift(1)
 # Running the test again
 adfuller_test(TRI022L['ps_traffic_Diff1'].dropna()) # Data is stationary now
-# Mansually plotting the the first Difference for TRI022L along with the trend
+# Manually plotting the the first Difference for TRI022L along with the trend
 TRI022L[['ps_traffic_volume_gb','ps_traffic_Diff1']].plot(figsize=(12,4))
 plt.xticks(rotation=45)
 plt.grid(True, alpha=0.2, color='grey')
 plt.tight_layout()
 plt.show()
-
 # ------------------------------------------------------
 # Creating a plotting function Trend+Diff
 # ------------------------------------------------------
@@ -645,9 +644,10 @@ def plot_trend_Diff(df, diff_level=1, col='ps_traffic_volume_gb', prefix='ps_tra
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.show()
-#---------------------------------------------------------
+
+# >>>>>
 #Applying it to TRI022L
-plot_trend_Diff(TRI022L, 1)
+plot_trend_Diff(TRI022L, 12)
 # ---------------------------------------------------------------
 # Creating Differencing Function and appending the result to existing datafram
 # ------------------------------------------------------
@@ -660,8 +660,31 @@ def add_diff_column(df, col='ps_traffic_volume_gb',
     df[f"{prefix}{next_diff}"] = df[base_col].diff()
     return df
 # ---------------------------------------------------------------
-add_diff_column(TRI166L, col ='ps_traffic_volume_gb') #each time its runs it creates a new differencing appends on existing dataset
+# Function that Iterates the running of Differecing function of a given number
+def run_add_diff_column_for_n_times(add_diff_column, df, n, **kwargs):
+    for _ in range(n):
+        df = add_diff_column(df, **kwargs)
+    return df
+# >>>>> running the function
+run_add_diff_column_for_n_times(add_diff_column, TRI882L, 2) # Diff1 & Diff2
+# ---------------------------------------------------------------
+# Steps
+#. ADF test
+#. Difference
+# .plot
 
 TRI166L.info()
 # Runnding
 adfuller_test(TRI166L['ps_traffic_Diff1'].dropna())
+
+def run_add_diff_column_for_n_times(add_diff_column, df, n, **kwargs):
+    for _ in range(n):
+        df = add_diff_column(df, **kwargs)
+    return df
+
+# ==============================================================
+# Data Preparation Hypothesis Testing - Stationarity Check
+# ==============================================================
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+
+
