@@ -46,9 +46,9 @@ This project focuses on forecasting LTE eNodeB traffic volume using machine lear
 - ✅ Data loading and preprocessing  
 - ✅ EDA and correlation analysis  
 - ✅ ADF test and differencing  
-- ✅ ACF/PACF plotting for parameter tuning  
-- 🔄 Model evaluation in progress  
-- 🔜 Deep learning models (LSTM/GRU) coming next
+- x ACF/PACF plotting for parameter tuning  
+- x Model evaluation in progress  
+- x Deep learning models (LSTM/GRU) coming next
 
 ---
 
