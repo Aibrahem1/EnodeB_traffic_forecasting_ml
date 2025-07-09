@@ -476,26 +476,32 @@ plt.title("PS Traffic Volume for TRI022L Montly Average")
 plt.grid(True, which='both' ,alpha=0.3)
 plt.tight_layout()
 plt.show()
+
 # Simple moving average Smoothing
 TRI022L.info()
+# Simple moving average Smoothing
 TRI022L['ps_30_rolling_window']=TRI022L['ps_traffic_volume_gb'].rolling(15, min_periods =1).mean()
+# Cumaltitive average Smoothing
 TRI022L['ps_CMA']=TRI022L['ps_traffic_volume_gb'].expanding().mean()
+# Expontential average Smoothing
 TRI022L['ps_EMA'] = TRI022L['ps_traffic_volume_gb'].ewm(alpha=0.3, adjust=False).mean()
+# Expontential weighted average Smoothing
 TRI022L['ps_EWMA'] = TRI022L['ps_traffic_volume_gb'].ewm(span=30).mean()
 
-# Cumalatitive Moving Average Smoothing
-#TRI022L TSA EDA + SMA 30 - 1 Year
+#TRI022L 1 Year TSA EDA + SMA 30 + CMA + EMA + EWMA
 TRI022L['2024-06-01':][['ps_traffic_volume_gb',
-                        'ps_CMA']].plot(figsize=(12, 4))
+                        'ps_CMA',
+                        'ps_EMA',
+                        'ps_EWMA']].plot(figsize=(12, 4))
 plt.xlabel("Timestamp")
 plt.ylabel("PS Traffic Volume (GB)")
-plt.title("PS Traffic Volume for TRI022L")
+plt.title("PS Traffic Volume for TRI022L & Smoothing Techniques SMA, CMA \n EMA & EWMA ")
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.show()
 
 # ==============================================================================
-#  Function to smooth_and_plot_enodeb_traffic to visually check for trend
+#  Function to smooth_and_plot_enodeb_traffic to conduce TSA EDA
 # ==============================================================================
 def plot_ps_traffic_smoothing (df, enodeb_name,
                                window=15,
@@ -522,66 +528,81 @@ def plot_ps_traffic_smoothing (df, enodeb_name,
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show()
-# =======================
 
-# Plotting PS Traffic for TRI022L Q3
-TRI022L['ps_traffic_volume_gb'].plot(grid=True,
-                                         xlim=['2024-06-01','2024-08-30'],
-                                         figsize=(12, 5),
-                                         title='Total PS Traffic Volume Over Time')
-plt.xlabel('Timestamp')
-plt.ylabel('PS Traffic Volume (GB)')
-plt.tight_layout()
-plt.show(block=True)
-# =============================================================================================================
+# =======================
 #Applying the function
 for name in enodeb_list:
     plot_ps_traffic_smoothing(agg_sites_traffic, name)
+
+
 # ==============================================================
-
-
-#,,,,,,
-TRI022_data['ps_traffic_volume_gb'].plot(figsize=(14,5),
-                                         grid=True)
-plt.show(block=True)
-#,,,,,
-TRI022_data.loc['2024-09-23': '2025-01-27']['ps_traffic_volume_gb'].plot(figsize=(12,4))
+# Seasonal-Trend Decomposition using Loess (STL)
+# ==============================================================
+from statsmodels.tsa.seasonal import STL
+# Apply STL decomposition
+TRI022L_STL = STL(TRI022L['ps_traffic_volume_gb'], period=7)
+TRI022L_STL_result = TRI022L_STL.fit()
+# --------------------------------------------------------------
+# Plot the STL decomposition for TRI022L
+plt.figure(figsize=(14, 10))
+TRI022L_STL_result.plot()
+plt.xticks(fontsize=8, va='top', rotation =45)
+plt.yticks(fontsize =8)
 plt.tight_layout()
-plt.show(block = True)
-#......
-#moth and frequency
-TRI022_data['ps_traffic_volume_gb'].resample(rule='M').mean().plot(figsize=(12,4))
-plt.show(block=True)
-#Quararly
-TRI022_data.resample(rule='QS').max()['ps_traffic_volume_gb'].plot(figsize=(12,4))
-plt.show(block=True)
+plt.show()
+# --------------------------------------------------------------
+# improved Plot the STL decomposition for TRI022L
+fig = TRI022L_STL_result.plot()
+fig.set_size_inches(14, 10)
+# Manually position the x-axis ticks at the bottom for each subplot
+fig.axes[0].tick_params(axis='x', bottom=True, labelbottom=True, top=False, labeltop=False)
+fig.axes[1].tick_params(axis='x', bottom=True, labelbottom=True, top=False, labeltop=False)
+fig.axes[2].tick_params(axis='x', bottom=True, labelbottom=True, top=False, labeltop=False)
+# Adjust font size and layout
+fig.axes[0].tick_params(axis='x', labelsize=8)
+fig.axes[1].tick_params(axis='x', labelsize=8)
+fig.axes[2].tick_params(axis='x', labelsize=8)
+plt.tight_layout()
+plt.show()
+# --------------------------------------------------------------
+# Creating a function to conduct STL
+def plot_stl_decomposition(df, enodeb_name, period=7):
+    site_df = df[df['enodeb_name'] == enodeb_name].copy()
+    site_df = site_df.sort_index()
+    # Apply STL
+    stl_result = STL(site_df['ps_traffic_volume_gb'], period=period).fit()
+    # Plot
+    fig = stl_result.plot()
+    fig.set_size_inches(14, 10)
+    # Set x-axis ticks below and adjust formatting
+    for ax in fig.axes:
+        ax.tick_params(axis='x', bottom=True, labelbottom=True, top=False, labeltop=False)
+        ax.tick_params(axis='x', labelsize=12)
+        ax.tick_params(axis='y', labelsize=12)
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.92)  # Allow room for suptitle
+    fig.suptitle(f'STL Decomposition of PS Traffic Volume – {enodeb_name} - {period} Days', fontsize=14)
+    plt.show()
+# --------------------------------------------------------------
+plot_stl_decomposition(agg_sites_traffic, 'TRI022L') # default period is 7 defined in the function
+plot_stl_decomposition(agg_sites_traffic, 'TRI022L', 30)
+# Apply here for more eNodeBs >>>>
+
+# --------------------------------------------------------------
+# ==============================================================
+# Data Preparation Hypothesis Testing - Stationarity Check
+# ==============================================================
+from statsmodels.tsa.stattools import adfuller
+
 #
-#Quararly
-TRI022_data.resample(rule='QS').max()['ps_traffic_volume_gb'].plot(figsize=(12,4))
-plt.show(block=True)
-#Weekly
-TRI022L.resample(rule='W').max()['ps_traffic_volume_gb'].plot(kind='line'
-                                                                  ,figsize=(12,2))
-plt.tight_layout()
-plt.show(block=True)
 
-TRI022_data['ps_traffic_volume_gb'].rolling(10).mean().plot()
-plt.show(block=True)
+from statsmodels.tsa.stattools import adfuller
 
-
-## Smoothing
-TRI022_data['ps_traffic_volume_gb_7days_rolling'] = TRI022_data['ps_traffic_volume_gb'].rolling(7).mean()
-TRI022_data.loc[:, 'ps_traffic_volume_gb_7days_rolling'] = TRI022_data['ps_traffic_volume_gb'].rolling(7).mean()
-
-TRI022_data[['ps_traffic_volume_gb_7days_rolling', 'ps_traffic_volume_gb']].plot()
-plt.show(block=True)
-
-
-# ****** ARIMA Model : predicted individual Sites traffic based on aggrageted cells traffic
-
-#simple moving average
-TRI022_data.loc[:,'ps_traffic_volume_gb:15_rolling_window']=TRI022_data['ps_traffic_volume_gb'].rolling(15, min_periods =1).mean()
-
-TRI022_data[['ps_traffic_volume_gb',
-             'ps_traffic_volume_gb:15_rolling_window']].plot(figsize=(12,4))
-plt.show(block='True')
+def adf_test(series):
+    result = adfuller(series)
+    print ('ADF statistics: {}', format(result[0]))
+    print ('p-Value:{}'.format(result[1]))
+    if result[1] <=0.5:
+        print('Strong evidence against the null hypothesis, reject the null hypothesis & data is stationary')
+    else:
+        print('Weak Evidence againest the null hypothesis, reject the alternative hypothesis and data is not stationary')

@@ -541,3 +541,86 @@ def plot_faceted_histograms(data: pd.DataFrame, enodeb_name: str):
 
 plot_faceted_histograms(agg_sites_traffic, enodeb_name='TRI022L')
 plot_faceted_histograms(agg_sites_traffic, enodeb_name='TRI1007L')
+
+
+import matplotlib.pyplot as plt
+from statsmodels.tsa.seasonal import STL
+
+# Convert timestamp to datetime and set as index
+df['timestamp'] = pd.to_datetime(df['timestamp'], dayfirst=True)
+df.set_index('timestamp', inplace=True)
+
+# Apply STL decomposition
+stl = STL(df['ps_traffic_volume_gb'], period=7)  # Assuming weekly seasonality
+result = stl.fit()
+
+# Plot the decomposition
+fig = result.plot()
+fig.set_size_inches(12, 8)
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
+
+# =============================================================================================================
+# Plotting PS Traffic for TRI022L Q3
+TRI022L['ps_traffic_volume_gb'].plot(grid=True,
+                                         xlim=['2024-06-01','2024-08-30'],
+                                         figsize=(12, 5),
+                                         title='Total PS Traffic Volume Over Time')
+plt.xlabel('Timestamp')
+plt.ylabel('PS Traffic Volume (GB)')
+plt.tight_layout()
+plt.show(block=True)
+# =============================================================================================================
+
+
+#,,,,,,
+TRI022_data['ps_traffic_volume_gb'].plot(figsize=(14,5),
+                                         grid=True)
+plt.show(block=True)
+#,,,,,
+TRI022_data.loc['2024-09-23': '2025-01-27']['ps_traffic_volume_gb'].plot(figsize=(12,4))
+plt.tight_layout()
+plt.show(block = True)
+#......
+#moth and frequency
+TRI022_data['ps_traffic_volume_gb'].resample(rule='M').mean().plot(figsize=(12,4))
+plt.show(block=True)
+#Quararly
+TRI022_data.resample(rule='QS').max()['ps_traffic_volume_gb'].plot(figsize=(12,4))
+plt.show(block=True)
+#
+#Quararly
+TRI022_data.resample(rule='QS').max()['ps_traffic_volume_gb'].plot(figsize=(12,4))
+plt.show(block=True)
+#Weekly
+TRI022L.resample(rule='W').max()['ps_traffic_volume_gb'].plot(kind='line'
+                                                                  ,figsize=(12,2))
+plt.tight_layout()
+plt.show(block=True)
+
+TRI022_data['ps_traffic_volume_gb'].rolling(10).mean().plot()
+plt.show(block=True)
+
+
+## Smoothing
+TRI022_data['ps_traffic_volume_gb_7days_rolling'] = TRI022_data['ps_traffic_volume_gb'].rolling(7).mean()
+TRI022_data.loc[:, 'ps_traffic_volume_gb_7days_rolling'] = TRI022_data['ps_traffic_volume_gb'].rolling(7).mean()
+
+TRI022_data[['ps_traffic_volume_gb_7days_rolling', 'ps_traffic_volume_gb']].plot()
+plt.show(block=True)
+
+
+# ****** ARIMA Model : predicted individual Sites traffic based on aggrageted cells traffic
+
+#simple moving average
+TRI022_data.loc[:,'ps_traffic_volume_gb:15_rolling_window']=TRI022_data['ps_traffic_volume_gb'].rolling(15, min_periods =1).mean()
+
+TRI022_data[['ps_traffic_volume_gb',
+             'ps_traffic_volume_gb:15_rolling_window']].plot(figsize=(12,4))
+plt.show(block='True')
