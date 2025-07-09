@@ -602,7 +602,9 @@ from statsmodels.tsa.stattools import adfuller # Augmented Dicky-Fuller (ADF) te
 
 #✅ Null Hypothesis (H₀): The series has a unit root (non-stationary)
 #❌ Alternative Hypothesis (H₁): The series is stationary and has no unit root
-
+# --------------------------------------------------------------
+# Creating ADfuller function to test for stationary
+# --------------------------------------------------------------
 def adfuller_test(series):
     result = adfuller(series)
     print('Augmented Dicky-Fuller (ADF) test statistic:{}'.format(result[0]))
@@ -611,22 +613,45 @@ def adfuller_test(series):
         print('Strong evidence against the null hypothesis. Reject the null hypothesis & data is stationary')
     else:
         print('Weak Evidence againest the null hypothesis. Reject the alternative hypothesis and data is not stationary')
-
+# --------------------------------------------------------------
 # Run the ADF test on TRI022L ps traffic
-adfuller_test(TRI022L['ps_traffic_volume_gb'])
+adfuller_test(TRI022L['ps_traffic_volume_gb']) #Not Sationary >>>> require Differencing
 # ---------------------------------------------------------------
 # Creating the first Difference for TRI022L
 TRI022L.loc[:,'ps_traffic_Diff1'] = TRI022L['ps_traffic_volume_gb']-TRI022L['ps_traffic_volume_gb'].shift(1)
 # Running the test again
 adfuller_test(TRI022L['ps_traffic_Diff1'].dropna()) # Data is stationary now
-
+# Mansually plotting the the first Difference for TRI022L along with the trend
 TRI022L[['ps_traffic_volume_gb','ps_traffic_Diff1']].plot(figsize=(12,4))
 plt.xticks(rotation=45)
 plt.grid(True, alpha=0.2, color='grey')
 plt.tight_layout()
 plt.show()
+
+# ------------------------------------------------------
+# Creating a plotting function Trend+Diff
+# ------------------------------------------------------
+def plot_trend_Diff(df, diff_level=1, col='ps_traffic_volume_gb', prefix='ps_traffic_Diff'):
+    diff_col = f"{prefix}{diff_level}"
+    if diff_col not in df.columns:
+        print(f"Column '{diff_col}' not found. Please generate it before plotting.")
+        return
+    enodeb_name = df['enodeb_name'].unique()[0] if 'enodeb_name' in df.columns else "Unknown eNodeB"
+    df[[col, diff_col]].plot(figsize=(14, 5))
+    plt.title(f'PS Traffic Volume and {diff_col} for {enodeb_name}')
+    plt.xlabel('Timestamp')
+    plt.ylabel('Traffic Volume / Difference')
+    plt.grid(True, alpha=0.2, color='grey')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+#---------------------------------------------------------
+#Applying it to TRI022L
+plot_trend_Diff(TRI022L, 1)
 # ---------------------------------------------------------------
 # Creating Differencing Function and appending the result to existing datafram
+# ------------------------------------------------------
+
 def add_diff_column(df, col='ps_traffic_volume_gb',
                     prefix='ps_traffic_Diff'):
     existing = [int(c.replace(prefix, '')) for c in df.columns if c.startswith(prefix) and c.replace(prefix, '').isdigit()]
