@@ -504,7 +504,7 @@ plt.show()
 #  Function to smooth_and_plot_enodeb_traffic to conduce TSA EDA
 # ==============================================================================
 def plot_ps_traffic_smoothing (df, enodeb_name,
-                               window=15,
+                               SMAwindow=15,
                                ema_alpha=0.3,
                                ewma_span=30,
                                start_date=None,
@@ -515,11 +515,10 @@ def plot_ps_traffic_smoothing (df, enodeb_name,
     elif start_date:
         site_df = site_df.loc[start_date: ]
     # Calculate moving averages
-    site_df['ps_SMA'] = site_df['ps_traffic_volume_gb'].rolling(window, min_periods=1).mean()
+    site_df['ps_SMA'] = site_df['ps_traffic_volume_gb'].rolling(SMAwindow, min_periods=1).mean()
     site_df['ps_CMA'] = site_df['ps_traffic_volume_gb'].expanding().mean()
     site_df['ps_EMA'] = site_df['ps_traffic_volume_gb'].ewm(alpha=ema_alpha, adjust=False).mean()
     site_df['ps_EWMA'] = site_df['ps_traffic_volume_gb'].ewm(span=ewma_span).mean()
-
     # Plot
     site_df[['ps_traffic_volume_gb', 'ps_SMA', 'ps_CMA', 'ps_EMA', 'ps_EWMA']].plot(figsize=(12, 4))
     plt.title(f"PS Traffic Volume Smoothing for {enodeb_name}")
@@ -534,6 +533,13 @@ def plot_ps_traffic_smoothing (df, enodeb_name,
 for name in enodeb_list:
     plot_ps_traffic_smoothing(agg_sites_traffic, name)
 
+plot_ps_traffic_smoothing(agg_sites_traffic,
+                          'TRI022L',
+                          7,
+                          0.3,
+                          30,
+                          None,
+                          None)
 
 # ==============================================================
 # Seasonal-Trend Decomposition using Loess (STL)
@@ -592,14 +598,45 @@ plot_stl_decomposition(agg_sites_traffic, 'TRI022L', 30)
 # ==============================================================
 # Data Preparation Hypothesis Testing - Stationarity Check
 # ==============================================================
-from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.stattools import adfuller # Augmented Dicky-Fuller (ADF) test
 
+#✅ Null Hypothesis (H₀): The series has a unit root (non-stationary)
+#❌ Alternative Hypothesis (H₁): The series is stationary and has no unit root
 
-def adf_test(series):
+def adfuller_test(series):
     result = adfuller(series)
-    print ('ADF statistics: {}', format(result[0]))
-    print ('p-Value:{}'.format(result[1]))
-    if result[1] <=0.5:
-        print('Strong evidence against the null hypothesis, reject the null hypothesis & data is stationary')
+    print('Augmented Dicky-Fuller (ADF) test statistic:{}'.format(result[0]))
+    print('p-Value: {}'.format(result[1]))
+    if result[1] < 0.05:
+        print('Strong evidence against the null hypothesis. Reject the null hypothesis & data is stationary')
     else:
-        print('Weak Evidence againest the null hypothesis, reject the alternative hypothesis and data is not stationary')
+        print('Weak Evidence againest the null hypothesis. Reject the alternative hypothesis and data is not stationary')
+
+# Run the ADF test on TRI022L ps traffic
+adfuller_test(TRI022L['ps_traffic_volume_gb'])
+# ---------------------------------------------------------------
+# Creating the first Difference for TRI022L
+TRI022L.loc[:,'ps_traffic_Diff1'] = TRI022L['ps_traffic_volume_gb']-TRI022L['ps_traffic_volume_gb'].shift(1)
+# Running the test again
+adfuller_test(TRI022L['ps_traffic_Diff1'].dropna()) # Data is stationary now
+
+TRI022L[['ps_traffic_volume_gb','ps_traffic_Diff1']].plot(figsize=(12,4))
+plt.xticks(rotation=45)
+plt.grid(True, alpha=0.2, color='grey')
+plt.tight_layout()
+plt.show()
+# ---------------------------------------------------------------
+# Creating Differencing Function and appending the result to existing datafram
+def add_diff_column(df, col='ps_traffic_volume_gb',
+                    prefix='ps_traffic_Diff'):
+    existing = [int(c.replace(prefix, '')) for c in df.columns if c.startswith(prefix) and c.replace(prefix, '').isdigit()]
+    next_diff = max(existing) + 1 if existing else 1
+    base_col = f"{prefix}{next_diff - 1}" if next_diff > 1 else col
+    df[f"{prefix}{next_diff}"] = df[base_col].diff()
+    return df
+# ---------------------------------------------------------------
+add_diff_column(TRI166L, col ='ps_traffic_volume_gb') #each time its runs it creates a new differencing appends on existing dataset
+
+TRI166L.info()
+# Runnding
+adfuller_test(TRI166L['ps_traffic_Diff1'].dropna())

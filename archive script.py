@@ -624,3 +624,12 @@ TRI022_data.loc[:,'ps_traffic_volume_gb:15_rolling_window']=TRI022_data['ps_traf
 TRI022_data[['ps_traffic_volume_gb',
              'ps_traffic_volume_gb:15_rolling_window']].plot(figsize=(12,4))
 plt.show(block='True')
+
+def adf_test(series):
+    result = adfuller(series)
+    print ('ADF statistics: {}', format(result[0]))
+    print ('p-Value:{}'.format(result[1]))
+    if result[1] <=0.5:
+        print('Strong evidence against the null hypothesis, reject the null hypothesis & data is stationary')
+    else:
+        print('Weak Evidence againest the null hypothesis, reject the alternative hypothesis and data is not stationary')
