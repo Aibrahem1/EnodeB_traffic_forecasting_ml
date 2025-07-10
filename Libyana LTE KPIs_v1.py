@@ -823,3 +823,10 @@ plt.ylabel('PS Traffic Volume (GB)')
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+# Again
+TRI022L_train
+TRI022L_test
+
+# This time using pmdarima
+from pmdarima
