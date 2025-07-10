@@ -616,12 +616,11 @@ def adfuller_test(series):
 # --------------------------------------------------------------
 # Run the ADF test on TRI022L ps traffic
 adfuller_test(TRI022L['ps_traffic_volume_gb']) #Not Sationary >>>> require Differencing
-# ---------------------------------------------------------------
-# Creating the first Difference for TRI022L
+# >> 1st Differencing for TRI022 ps_traffic
 TRI022L.loc[:,'ps_traffic_Diff1'] = TRI022L['ps_traffic_volume_gb']-TRI022L['ps_traffic_volume_gb'].shift(1)
-# Running the test again
+# >> Running the test again
 adfuller_test(TRI022L['ps_traffic_Diff1'].dropna()) # Data is stationary now
-# Manually plotting the the first Difference for TRI022L along with the trend
+# >> Manually plotting the the first Difference for TRI022L along with the trend
 TRI022L[['ps_traffic_volume_gb','ps_traffic_Diff1']].plot(figsize=(12,4))
 plt.xticks(rotation=45)
 plt.grid(True, alpha=0.2, color='grey')
@@ -646,19 +645,18 @@ def plot_trend_Diff(df, diff_level=1, col='ps_traffic_volume_gb', prefix='ps_tra
     plt.show()
 
 # >>>>>
-#Applying it to TRI022L
+#Applying the plot_trend_Diff to TRI022L
 plot_trend_Diff(TRI022L, 12)
 # ---------------------------------------------------------------
 # Creating Differencing Function and appending the result to existing datafram
 # ------------------------------------------------------
-
-def add_diff_column(df, col='ps_traffic_volume_gb',
-                    prefix='ps_traffic_Diff'):
+def add_diff_column(df, col='ps_traffic_volume_gb', prefix='ps_traffic_Diff'):
     existing = [int(c.replace(prefix, '')) for c in df.columns if c.startswith(prefix) and c.replace(prefix, '').isdigit()]
     next_diff = max(existing) + 1 if existing else 1
     base_col = f"{prefix}{next_diff - 1}" if next_diff > 1 else col
     df[f"{prefix}{next_diff}"] = df[base_col].diff()
     return df
+
 # ---------------------------------------------------------------
 # Function that Iterates the running of Differecing function of a given number
 def run_add_diff_column_for_n_times(add_diff_column, df, n, **kwargs):
@@ -672,23 +670,17 @@ run_add_diff_column_for_n_times(add_diff_column, TRI882L, 2) # Diff1 & Diff2
 #. ADF test
 #. Difference
 # .plot
-
 TRI166L.info()
 # Runnding
 adfuller_test(TRI166L['ps_traffic_Diff1'].dropna())
 
-def run_add_diff_column_for_n_times(add_diff_column, df, n, **kwargs):
-    for _ in range(n):
-        df = add_diff_column(df, **kwargs)
-    return df
-
 # ==============================================================
-# Data Preparation Hypothesis Testing - Stationarity Check
+# Autocorrelation ACF and Partial Auto Correlation
 # ==============================================================
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 # >>>>> ACF Plot
 plt.subplots(figsize=(5, 5))
-plot_acf(TRI022L['ps_traffic_Diff12'].dropna())
+plot_acf(TRI022L['ps_traffic_Diff1'].dropna())
 plt.title('ACF Plot for TRI022')
 plt.grid(True, alpha = 0.09, color ='grey')
 plt.tight_layout()
@@ -696,7 +688,7 @@ plt.show()
 
 # >>>>> PACF Plot
 plt.subplots(figsize=(5, 5))
-plot_pacf(TRI022L['ps_traffic_Diff12'].dropna())
+plot_pacf(TRI022L['ps_traffic_Diff1'].dropna())
 plt.title('PACF Plot for TRI022 Diff12')
 plt.grid(True, alpha = 0.09, color ='grey')
 plt.tight_layout()
@@ -725,55 +717,47 @@ def func_plot_pacf(df, col_name, site_label=""):
 func_plot_acf(TRI022L, 'ps_traffic_Diff1', 'TRI022')
 func_plot_pacf(TRI022L, 'ps_traffic_Diff1', 'TRI022')
 # ------------------------------------------------------------
-# Training and Test
-TRI022L.index.min()
-TRI022L.index.max()
-# - Splitting the data into training and test
-train_end = '2025-02-28' # 9 months train    /#2025-04-30 --11M
-test_start = '2025-03-01' # 3.8 months train /#2025-05-01 --2M
-
+# ==============================================================
+# Data Splitting : Training and Test
+# ==============================================================
+TRI022L.index.min() # to get the start Date
+TRI022L.index.max() # to get the end date
+# > Set the
+# training end date and test start date
+from datetime import datetime, timedelta
+train_end = datetime(2025,2,28) # 9 months train    /#2025-04-30 --11M
+test_end = datetime(2025, 6,24) # 3.8 months test /#2025-05-01 --2M
+# > Apply the splitting
 TRI022L_train = TRI022L[: train_end]
-TRI022L_test = TRI022L[test_start:]
+TRI022L_test = TRI022L[train_end+timedelta(days=1): test_end]
 
+TRI022L_train.index.max()
+TRI022L_test.index.min()
+
+# ---- > Building ARIMA Model
 # building the model
 from statsmodels.tsa.arima.model import ARIMA
-
+#>
 TRI022L_ARIMA = ARIMA(TRI022L_train['ps_traffic_volume_gb'],
-                      order=(18,1,21))
+                      order=(7,1,20))
+#>
 TRI022L_ARIMA_fit = TRI022L_ARIMA.fit()
+#>
 TRI022L_ARIMA_fit.summary()
-
+# >>> Making Prediction
 predict_start_date =TRI022L_test.index[0]
 predict_end_date =TRI022L_test.index[-1]
 
-TRI022_pred =TRI022L_ARIMA_fit.predict(start=predict_end_date,
-                                       end=predict_end_date)
-TRI022_pred
+predict_start_date
+predict_end_date
 
-residuals = TRI['Thousands of Passengers']-pred
+TRI022L_pred =TRI022L_ARIMA_fit.predict(start=predict_start_date,
+                                       end=predict_end_date,
+                                        typ='levels')
 
-plt.figure(figsize=(12, 5))
-plt.plot(TRI022L_train['ps_traffic_volume_gb'], label='Training', color='grey', aplha=0.3)
-plt.plot(TRI022L_test['ps_traffic_volume_gb'], label='Actual (Test)')
-plt.plot(TRI022L_forecast, label='Forecast', linestyle='--')
-plt.title('ARIMA(1,1,1) Forecast vs Actual – TRI022L')
-plt.xlabel('Date')
-plt.ylabel('PS Traffic Volume (GB)')
-plt.legend()
-plt.tight_layout()
-plt.show()
-
-test_days =
-#----
-n_test = len(TRI022L_test)
-
-forecast_obj = TRI022L_ARIMA_fit.get_forecast(steps=n_test)
-forecast_df = forecast_obj.summary_frame(alpha=0.05)
-
-# Align the index
-forecast_df.index = TRI022L_test.index
-
+TRI022L_pred.head(10)
 # Plot
+
 plt.figure(figsize=(14, 5))
 plt.plot(TRI022L_train['ps_traffic_volume_gb'], label='Training')
 plt.plot(TRI022L_test['ps_traffic_volume_gb'], label='Actual (Test)')
@@ -782,12 +766,44 @@ plt.fill_between(forecast_df.index,
                  forecast_df['mean_ci_lower'],
                  forecast_df['mean_ci_upper'],
                  color='green', alpha=0.2)
-plt.title('Daily Forecast vs Actual for TRI022L – ARIMA(1,1,1)')
+plt.title('Daily Forecast vs Actual for TRI022L – ARIMA(7,1,20)')
 plt.xlabel('Date')
 plt.ylabel('PS Traffic Volume (GB)')
 plt.legend()
 plt.tight_layout()
 plt.show()
 
-
 #------------- SARIMAX
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+sarima_model = SARIMAX(TRI022L_train['ps_traffic_volume_gb'],
+                order=(1, 1, 1),
+                seasonal_order=(1, 1, 1, 7),
+                enforce_stationarity=False,
+                enforce_invertibility=False)
+
+sarima_model_fit = sarima_model.fit()
+sarima_model_fit.summary()
+
+TRI022L_pred_sarima =sarima_model_fit.predict(start=predict_start_date,
+                                       end=predict_end_date,
+                                        typ='levels')
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(12, 5))
+plt.plot(TRI022L_train['ps_traffic_volume_gb'], label='Training')
+plt.plot(TRI022L_test['ps_traffic_volume_gb'], label='Actual (Test)', color='orange')
+plt.plot(TRI022L_pred_sarima, label='Forecast', color='green', linestyle='--')
+plt.title('SARIMAX Forecast vs Actual – TRI022L')
+plt.xlabel('Date')
+plt.ylabel('PS Traffic Volume (GB)')
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(12, 5))
+sarima_model_fit.resid.plot(kind='kde')
+plt.tight_layout()
+plt.show()
+
+T
