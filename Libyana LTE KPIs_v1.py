@@ -747,9 +747,11 @@ TRI022L_ARIMA_fit.summary()
 # >>> Making Prediction
 predict_start_date =TRI022L_test.index[0]
 predict_end_date =TRI022L_test.index[-1]
+predict_future = predict_end_date+timedelta(days=200)
 
 predict_start_date
 predict_end_date
+predict_future
 
 TRI022L_pred =TRI022L_ARIMA_fit.predict(start=predict_start_date,
                                        end=predict_end_date,
@@ -805,5 +807,19 @@ plt.figure(figsize=(12, 5))
 sarima_model_fit.resid.plot(kind='kde')
 plt.tight_layout()
 plt.show()
+# >>> predict future
+TRI022L_pred_sarima_future =sarima_model_fit.predict(start=predict_start_date,
+                                       end=predict_future,
+                                        typ='levels')
+import matplotlib.pyplot as plt
 
-T
+plt.figure(figsize=(12, 5))
+plt.plot(TRI022L_train['ps_traffic_volume_gb'], label='Training')
+plt.plot(TRI022L_test['ps_traffic_volume_gb'], label='Actual (Test)', color='orange')
+plt.plot(TRI022L_pred_sarima_future, label='Forecast', color='green', linestyle='--')
+plt.title('SARIMAX Forecast vs Actual – TRI022L')
+plt.xlabel('Date')
+plt.ylabel('PS Traffic Volume (GB)')
+plt.legend()
+plt.tight_layout()
+plt.show()
