@@ -422,10 +422,7 @@ plt.show(block=True)
 def subset_enodeb (df, name):
     return df[df['enodeb_name']==name]
 
-
 TRI022_data = subset_enodeb(agg_sites_traffic, 'TRI022L')
-
-TRI022_data['ps_traffic_volume_gb']
 
 
 # ==============================================================================
@@ -533,6 +530,7 @@ def plot_ps_traffic_smoothing (df, enodeb_name,
 for name in enodeb_list:
     plot_ps_traffic_smoothing(agg_sites_traffic, name)
 
+#-----------------
 plot_ps_traffic_smoothing(agg_sites_traffic,
                           'TRI022L',
                           7,
@@ -593,6 +591,11 @@ def plot_stl_decomposition(df, enodeb_name, period=7):
 plot_stl_decomposition(agg_sites_traffic, 'TRI022L') # default period is 7 defined in the function
 plot_stl_decomposition(agg_sites_traffic, 'TRI022L', 30)
 # Apply here for more eNodeBs >>>>
+# >>> Group 2
+plot_stl_decomposition(agg_sites_traffic, 'TRI166L', 7)
+plot_stl_decomposition(agg_sites_traffic, 'TRI231L', 7)
+plot_stl_decomposition(agg_sites_traffic, 'TRI878L', 7)
+plot_stl_decomposition(agg_sites_traffic, 'TRI183L', 7)
 
 # --------------------------------------------------------------
 # ==============================================================
@@ -616,10 +619,13 @@ def adfuller_test(series):
 # --------------------------------------------------------------
 # Run the ADF test on TRI022L ps traffic
 adfuller_test(TRI022L['ps_traffic_volume_gb']) #Not Sationary >>>> require Differencing
+
 # >> 1st Differencing for TRI022 ps_traffic
 TRI022L.loc[:,'ps_traffic_Diff1'] = TRI022L['ps_traffic_volume_gb']-TRI022L['ps_traffic_volume_gb'].shift(1)
+
 # >> Running the test again
 adfuller_test(TRI022L['ps_traffic_Diff1'].dropna()) # Data is stationary now
+
 # >> Manually plotting the the first Difference for TRI022L along with the trend
 TRI022L[['ps_traffic_volume_gb','ps_traffic_Diff1']].plot(figsize=(12,4))
 plt.xticks(rotation=45)
@@ -627,8 +633,9 @@ plt.grid(True, alpha=0.2, color='grey')
 plt.tight_layout()
 plt.show()
 # ------------------------------------------------------
-# Creating a plotting function Trend+Diff
+# Creating a plotting function Trend+Diff & Differencing Function
 # ------------------------------------------------------
+#Plot Trend + Differenced
 def plot_trend_Diff(df, diff_level=1, col='ps_traffic_volume_gb', prefix='ps_traffic_Diff'):
     diff_col = f"{prefix}{diff_level}"
     if diff_col not in df.columns:
@@ -663,16 +670,32 @@ def run_add_diff_column_for_n_times(add_diff_column, df, n, **kwargs):
     for _ in range(n):
         df = add_diff_column(df, **kwargs)
     return df
-# >>>>> running the function
-run_add_diff_column_for_n_times(add_diff_column, TRI882L, 2) # Diff1 & Diff2
+
+# >>>>> running the function creating 12 differences for group 2 sites
+
+run_add_diff_column_for_n_times(add_diff_column, TRI022L, 12) # Diff1 & Diff2
+TRI022L.info()
+plot_trend_Diff(TRI022L, 1)
+
+run_add_diff_column_for_n_times(add_diff_column, TRI166L, 12)
+plot_trend_Diff(TRI166L, 1)
+
+run_add_diff_column_for_n_times(add_diff_column, TRI231L, 12)
+plot_trend_Diff(TRI022L, 1)
+
+run_add_diff_column_for_n_times(add_diff_column, TRI878L, 12)
+plot_trend_Diff(TRI231L, 1)
+
+run_add_diff_column_for_n_times(add_diff_column, TRI183L, 12)
+plot_trend_Diff(TRI183L, 1)
+
 # ---------------------------------------------------------------
-# Steps
-#. ADF test
-#. Difference
-# .plot
-TRI166L.info()
-# Runnding
+
+# Checking the ADF test all sites became sationary after the first differencing
 adfuller_test(TRI166L['ps_traffic_Diff1'].dropna())
+adfuller_test(TRI231L['ps_traffic_Diff1'].dropna())
+adfuller_test(TRI878L['ps_traffic_Diff1'].dropna())
+adfuller_test(TRI183L['ps_traffic_Diff1'].dropna())
 
 # ==============================================================
 # Autocorrelation ACF and Partial Auto Correlation
