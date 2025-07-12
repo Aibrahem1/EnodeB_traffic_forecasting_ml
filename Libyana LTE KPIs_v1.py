@@ -343,7 +343,14 @@ plt.xlabel('No. of RRC Users')
 plt.ylabel('Frequency')
 plt.show()
 
-def plot_faceted_histograms_ps_traffic(df, enodeb_name):
+TRI022a.loc[TRI022a['ps_traffic_volume_gb'] < 1800, 'ps_traffic_volume_gb'] = 1974.9996
+
+TRI022a['ps_traffic_volume_gb'].plot(figsize=(12,4))
+plt.tight_layout()
+plt.show()
+
+
+def plot_faceted_histograms_ps_traffic(df, enodeb_nam):
     subset = df[df['enodeb_name'] == enodeb_name]
     features = ['ps_traffic_volume_gb']
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
@@ -599,6 +606,18 @@ plot_stl_decomposition(agg_sites_traffic, 'TRI183L', 7)
 
 # --------------------------------------------------------------
 # ==============================================================
+# Expontiontial Smoothing & Holt-winters
+# ==============================================================
+
+from statsmodels.tsa.holtwinters import ExponentialSmoothing, SimpleExpSmoothing
+#Simple Expontiontial Smoothing
+ses_TRI022LS = SimpleExpSmoothing(TRI022L_train['ps_traffic_volume_gb']).fit()
+ses_TRI022LS.summary()
+
+ses_TRI022LS.info()
+ses_TRI022LS
+
+# ==============================================================
 # Data Preparation Hypothesis Testing - Stationarity Check
 # ==============================================================
 from statsmodels.tsa.stattools import adfuller # Augmented Dicky-Fuller (ADF) test
@@ -712,7 +731,7 @@ plt.show()
 # >>>>> PACF Plot
 plt.subplots(figsize=(5, 5))
 plot_pacf(TRI022L['ps_traffic_Diff1'].dropna())
-plt.title('PACF Plot for TRI022 Diff12')
+plt.title('PACF Plot for TRI022 Diff1')
 plt.grid(True, alpha = 0.09, color ='grey')
 plt.tight_layout()
 plt.show()
@@ -830,6 +849,7 @@ plt.figure(figsize=(12, 5))
 sarima_model_fit.resid.plot(kind='kde')
 plt.tight_layout()
 plt.show()
+
 # >>> predict future
 TRI022L_pred_sarima_future =sarima_model_fit.predict(start=predict_start_date,
                                        end=predict_future,
@@ -851,5 +871,12 @@ plt.show()
 TRI022L_train
 TRI022L_test
 
-# This time using pmdarima
-from pmdarima
+# This time using pmdarim
+from pmdarima import
+
+#  MAE, RMSE and MSE MAPE
+from sklearn.metrics import root_mean_squared_error, mean_squared_error, mean_absolute_error,mean_absolute_percentage_error
+
+print(root_mean_squared_erro(f" RMSE:{rmse:.f}")
+print(mean_absolute_error(f" MAE:{mae:.f}")
+print(mean_absolute_percentage_error(f" MAPE:{mape:.f}")
